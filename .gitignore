@@ -1,2 +1,22 @@
 *.md
 !README.md
+
+# CMake build artifacts
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# CMake generated project files
+Makefile
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# VS Code settings
+.vscode/
