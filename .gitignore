@@ -18,5 +18,9 @@ Makefile
 *.vcxproj.user
 *.sln
 
+# execution artifacts
+F*.txt
+Lukosevicius
+
 # VS Code settings
 .vscode/

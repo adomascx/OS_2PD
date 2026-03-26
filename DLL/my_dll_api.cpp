@@ -8,177 +8,220 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
-namespace {
+using std::array;
+using std::cerr;
+using std::endl;
+using std::error_code;
+using std::fabs;
+using std::fixed;
+using std::floor;
+using std::ifstream;
+using std::ios;
+using std::max;
+using std::ofstream;
+using std::ostringstream;
+using std::round;
+using std::setprecision;
+using std::size_t;
+using std::sort;
+using std::sqrt;
+using std::string;
+using std::system;
+using std::to_string;
+using std::vector;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using std::chrono::system_clock;
+using std::filesystem::current_path;
+using std::filesystem::exists;
+using std::filesystem::path;
+using std::filesystem::remove;
 
-constexpr int kStatusSuccess = 0;
-constexpr int kStatusInvalidInput = -1;
-constexpr int kStatusSystemCommandFailed = -2;
-constexpr int kStatusIoFailed = -3;
+namespace
+{
 
-constexpr int kTreeBranchCount = 3;
-constexpr int kLeafCount = kTreeBranchCount * kTreeBranchCount;
+    // konstantos
+    constexpr int treeBranchCount = 3;
+    constexpr int leafCount = treeBranchCount * treeBranchCount;
+    constexpr const char *name = "Adomas";
+    constexpr const char *lastname = "Lukosevicius";
 
-constexpr const char* kStudentName = "Adomas";
-constexpr const char* kStudentSurname = "Lukosevicius";
-
-struct Point {
-    double x;
-    double y;
-};
-
-bool IsNullOrEmpty(const char* value) {
-    return value == nullptr || value[0] == '\0';
-}
-
-std::string QuoteForCmd(const std::filesystem::path& path) {
-    return "\"" + path.string() + "\"";
-}
-
-int RunSystemCommand(const std::string& command) {
-    const int rc = std::system(command.c_str());
-    return rc == 0 ? kStatusSuccess : kStatusSystemCommandFailed;
-}
-
-std::filesystem::path GetWorkingRootPath() {
-    return std::filesystem::current_path() / kStudentSurname;
-}
-
-std::array<std::string, kTreeBranchCount> GetFirstLevelNames() {
-    std::array<std::string, kTreeBranchCount> names{};
-    for (int i = 0; i < kTreeBranchCount; ++i) {
-        names[static_cast<std::size_t>(i)] = std::string(kStudentName) + std::to_string(i + 1);
-    }
-    return names;
-}
-
-std::vector<std::filesystem::path> GetLeafDirectoryPaths() {
-    const auto root = GetWorkingRootPath();
-    const auto firstLevelNames = GetFirstLevelNames();
-
-    std::vector<std::filesystem::path> result;
-    result.reserve(kLeafCount);
-
-    for (const auto& parentName : firstLevelNames) {
-        for (const auto& suffixName : firstLevelNames) {
-            const std::string leafName = parentName + suffixName;
-            result.push_back(root / parentName / leafName);
-        }
-    }
-
-    return result;
-}
-
-std::vector<std::filesystem::path> GetLeafTextFilePaths() {
-    const auto leafDirs = GetLeafDirectoryPaths();
-
-    std::vector<std::filesystem::path> files;
-    files.reserve(leafDirs.size());
-
-    for (const auto& leafDir : leafDirs) {
-        const std::string leafFolderName = leafDir.filename().string();
-        files.push_back(leafDir / (leafFolderName + ".txt"));
-    }
-
-    return files;
-}
-
-std::string FormatFloatForFileName(float value) {
-    const double asDouble = static_cast<double>(value);
-    const double nearestInteger = std::round(asDouble);
-    if (std::fabs(asDouble - nearestInteger) < 1e-6) {
-        return std::to_string(static_cast<long long>(nearestInteger));
-    }
-
-    std::ostringstream stream;
-    stream << std::fixed << std::setprecision(3) << asDouble;
-    std::string text = stream.str();
-
-    while (!text.empty() && text.back() == '0') {
-        text.pop_back();
-    }
-    if (!text.empty() && text.back() == '.') {
-        text.pop_back();
-    }
-
-    return text;
-}
-
-int EnsureLeafNodeTextFilesExist() {
-    const auto filePaths = GetLeafTextFilePaths();
-    for (const auto& filePath : filePaths) {
-        std::ofstream file(filePath, std::ios::app);
-        if (!file.is_open()) {
-            return kStatusIoFailed;
-        }
-    }
-
-    return kStatusSuccess;
-}
-
-int CreateTreeWithSystem() {
-    const auto root = GetWorkingRootPath();
-    const auto firstLevelNames = GetFirstLevelNames();
-
+    struct Point
     {
-        const std::string cmd = "cmd /C if not exist " + QuoteForCmd(root) + " mkdir " + QuoteForCmd(root);
-        const int status = RunSystemCommand(cmd);
-        if (status != kStatusSuccess) {
-            return status;
+        double x;
+        double y;
+    };
+
+    // helperiai
+
+    int printDllError(string functionName, string details) { cerr << "\n[DLL] " << functionName << " failed: " << details << endl; }
+
+    string quoteForCmd(const path &path) { return "\"" + path.string() + "\""; }
+
+    int runSystemCommand(const string &command) { return system(command.c_str()) == 1; }
+
+    path getWorkingRootPath() { return current_path() / lastname; }
+
+    string *getFirstLevelNames()
+    {
+        string names[treeBranchCount] = {};
+        for (int i = 0; i < treeBranchCount; ++i)
+        {
+            names[i] = string(name) + to_string(i + 1);
         }
+        return names;
     }
 
-    for (const auto& parentName : firstLevelNames) {
-        const auto firstLevel = root / parentName;
-        const std::string firstCmd = "cmd /C if not exist " + QuoteForCmd(firstLevel) + " mkdir " + QuoteForCmd(firstLevel);
-        const int firstStatus = RunSystemCommand(firstCmd);
-        if (firstStatus != kStatusSuccess) {
-            return firstStatus;
-        }
+    vector<path> getLeafDirPaths()
+    {
+        const auto root = getWorkingRootPath();
+        const auto firstLevelNames = getFirstLevelNames();
 
-        for (const auto& suffixName : firstLevelNames) {
-            const auto secondLevel = firstLevel / (parentName + suffixName);
-            const std::string secondCmd = "cmd /C if not exist " + QuoteForCmd(secondLevel) + " mkdir " + QuoteForCmd(secondLevel);
-            const int secondStatus = RunSystemCommand(secondCmd);
-            if (secondStatus != kStatusSuccess) {
-                return secondStatus;
+        vector<path> result;
+        result.reserve(leafCount);
+
+        for (const auto &parentName : firstLevelNames)
+        {
+            for (const auto &suffixName : firstLevelNames)
+            {
+                const string leafName = parentName + suffixName;
+                result.push_back(root / parentName / leafName);
             }
         }
+
+        return result;
     }
 
-    return kStatusSuccess;
-}
+    vector<path> GetLeafTextFilePaths()
+    {
+        const auto leafDirs = getLeafDirPaths();
 
-}  // namespace
+        vector<path> files;
+        files.reserve(leafDirs.size());
 
-extern "C" MY_DLL_API float __cdecl Dll_GetCurrentTimeSeconds(void) {
-    const auto now = std::chrono::system_clock::now();
-    const auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        for (const auto &leafDir : leafDirs)
+        {
+            const string leafFolderName = leafDir.filename().string();
+            files.push_back(leafDir / (leafFolderName + ".txt"));
+        }
+
+        return files;
+    }
+
+    string FormatFloatForFileName(float value)
+    {
+        const double asDouble = static_cast<double>(value);
+        const double nearestInteger = round(asDouble);
+        if (fabs(asDouble - nearestInteger) < 1e-6)
+        {
+            return to_string(static_cast<long long>(nearestInteger));
+        }
+
+        ostringstream stream;
+        stream << fixed << setprecision(3) << asDouble;
+        string text = stream.str();
+
+        while (!text.empty() && text.back() == '0')
+        {
+            text.pop_back();
+        }
+        if (!text.empty() && text.back() == '.')
+        {
+            text.pop_back();
+        }
+
+        return text;
+    }
+
+    int EnsureLeafNodeTextFilesExist()
+    {
+        const auto filePaths = GetLeafTextFilePaths();
+        for (const auto &filePath : filePaths)
+        {
+            ofstream file(filePath, ios::app);
+            if (!file.is_open())
+            {
+                return printDllError("EnsureLeafNodeTextFilesExist", "cannot open file: " + filePath.string());
+            }
+        }
+
+        return 0;
+    }
+
+    int CreateTreeWithSystem()
+    {
+        const auto root = getWorkingRootPath();
+        const auto firstLevelNames = getFirstLevelNames();
+
+        {
+            const string cmd = "cmd /C if not exist \"" + root.string() + "\" mkdir \"" + root.string() + "\"";
+            const int status = runSystemCommand(cmd);
+            if (status != 0)
+            {
+                return printDllError("CreateTreeWithSystem", "command: " + cmd);
+            }
+        }
+
+        for (const auto &parentName : firstLevelNames)
+        {
+            const auto firstLevel = root / parentName;
+            const string firstCmd = "cmd /C if not exist \"" + firstLevel.string() + "\" mkdir \"" + firstLevel.string() + "\"";
+            const int firstStatus = runSystemCommand(firstCmd);
+            if (firstStatus != 0)
+            {
+                return printDllError("CreateTreeWithSystem", "command: " + firstCmd);
+            }
+
+            for (const auto &suffixName : firstLevelNames)
+            {
+                const auto secondLevel = firstLevel / (parentName + suffixName);
+                const string secondCmd = "cmd /C if not exist \"" + secondLevel.string() + "\" mkdir \"" + secondLevel.string() + "\"";
+                const int secondStatus = runSystemCommand(secondCmd);
+                if (secondStatus != 0)
+                {
+                    return printDllError("CreateTreeWithSystem", "command: " + secondCmd);
+                }
+            }
+        }
+
+        return 0;
+    }
+
+} // namespace
+
+extern "C" MY_DLL_API float __cdecl Dll_GetCurrentTimeSeconds(void)
+{
+    const auto now = system_clock::now();
+    const auto nowMs = duration_cast<milliseconds>(now.time_since_epoch()).count();
 
     const float seconds = static_cast<float>(nowMs) / 1000.0f;
-    return std::floor(seconds * 10.0f) / 10.0f;
+    return floor(seconds * 10.0f) / 10.0f;
 }
 
-extern "C" MY_DLL_API int __cdecl Dll_SetUserTimeRestriction(
-    const char* userName,
-    const char* weekDays,
-    const char* timeInterval) {
-    if (IsNullOrEmpty(userName) || IsNullOrEmpty(weekDays) || IsNullOrEmpty(timeInterval)) {
-        return kStatusInvalidInput;
-    }
-
-    std::ostringstream command;
+extern "C" MY_DLL_API int __cdecl Dll_SetUserTimeRestriction(string *userName, string *weekDays, string *timeInterval)
+{
+    ostringstream command;
     command << "net user \"" << userName << "\" /times:" << weekDays << "," << timeInterval;
 
-    return RunSystemCommand(command.str());
+    const int status = runSystemCommand(command.str());
+    if (status != 0)
+    {
+        return printDllError("Dll_SetUserTimeRestriction", "command: " + command.str());
+    }
+
+    return 0;
 }
 
-extern "C" MY_DLL_API int __cdecl Dll_CreateWorkingFolderTree(void) {
+extern "C" MY_DLL_API int __cdecl Dll_CreateWorkingFolderTree(void)
+{
     const int createStatus = CreateTreeWithSystem();
-    if (createStatus != kStatusSuccess) {
+    if (createStatus != 0)
+    {
         return createStatus;
     }
 
@@ -189,109 +232,136 @@ extern "C" MY_DLL_API int __cdecl Dll_ComputeAndDistributePoints(
     float F,
     float x0,
     float xn,
-    float dx) {
-    if (dx <= 0.0f || xn < x0) {
-        return kStatusInvalidInput;
+    float dx)
+{
+    if (dx <= 0.0f || xn < x0)
+    {
+        return printDllError("Dll_ComputeAndDistributePoints", "dx must be > 0 and xn must be >= x0");
     }
 
     const auto filePaths = GetLeafTextFilePaths();
 
-    std::vector<std::ofstream> streams;
+    vector<ofstream> streams;
     streams.reserve(filePaths.size());
-    for (const auto& path : filePaths) {
-        streams.emplace_back(path, std::ios::app);
-        if (!streams.back().is_open()) {
-            return kStatusIoFailed;
+    for (const auto &path : filePaths)
+    {
+        streams.emplace_back(path, ios::app);
+        if (!streams.back().is_open())
+        {
+            return printDllError("Dll_ComputeAndDistributePoints", "cannot open stream: " + path.string());
         }
-        streams.back() << std::fixed << std::setprecision(3);
+        streams.back() << fixed << setprecision(3);
     }
 
-    std::size_t pointIndex = 0;
+    size_t pointIndex = 0;
     const double xStart = static_cast<double>(x0);
     const double xEnd = static_cast<double>(xn);
     const double xStep = static_cast<double>(dx);
     const double fValue = static_cast<double>(F);
-    const double epsilon = std::max(1e-12, std::fabs(xStep) * 1e-9);
+    const double epsilon = max(1e-12, fabs(xStep) * 1e-9);
 
-    for (double x = xStart; x <= xEnd + epsilon; x += xStep) {
+    for (double x = xStart; x <= xEnd + epsilon; x += xStep)
+    {
         const double radicand = (x * x * x) + (3.0 * x * x) - fValue;
-        if (radicand < 0.0) {
+        if (radicand < 0.0)
+        {
             continue;
         }
 
-        const double y = std::sqrt(radicand);
-        std::ofstream& target = streams[pointIndex % streams.size()];
+        const double y = sqrt(radicand);
+        ofstream &target = streams[pointIndex % streams.size()];
         target << x << " " << y << "\n";
-        if (!target.good()) {
-            return kStatusIoFailed;
+        if (!target.good())
+        {
+            return printDllError("Dll_ComputeAndDistributePoints", "write failed while distributing points");
         }
 
         ++pointIndex;
     }
 
-    return kStatusSuccess;
+    return 0;
 }
 
-extern "C" MY_DLL_API int __cdecl Dll_MergeSortAndFinalize(float F) {
+extern "C" MY_DLL_API int __cdecl Dll_MergeSortAndFinalize(float F)
+{
     const auto filePaths = GetLeafTextFilePaths();
 
-    std::vector<Point> points;
-    for (const auto& path : filePaths) {
-        std::ifstream input(path);
-        if (!input.is_open()) {
-            return kStatusIoFailed;
+    vector<Point> points;
+    for (const auto &path : filePaths)
+    {
+        ifstream input(path);
+        if (!input.is_open())
+        {
+            return printDllError("Dll_MergeSortAndFinalize", "cannot open input file: " + path.string());
         }
 
         Point point{};
-        while (input >> point.x >> point.y) {
+        while (input >> point.x >> point.y)
+        {
             points.push_back(point);
         }
 
-        if (!input.eof() && input.fail()) {
-            return kStatusIoFailed;
+        if (!input.eof() && input.fail())
+        {
+            return printDllError("Dll_MergeSortAndFinalize", "parse failed for file: " + path.string());
         }
     }
 
-    std::sort(points.begin(), points.end(), [](const Point& left, const Point& right) {
+    sort(points.begin(), points.end(), [](const Point &left, const Point &right)
+         {
         if (left.x == right.x) {
             return left.y < right.y;
         }
-        return left.x < right.x;
-    });
+        return left.x < right.x; });
 
-    const std::filesystem::path outputPath = std::filesystem::current_path() /
-        (std::string("F_") + FormatFloatForFileName(F) + ".txt");
+    const path outputPath = current_path() /
+                            (string("F_") + FormatFloatForFileName(F) + ".txt");
 
-    std::ofstream output(outputPath, std::ios::trunc);
-    if (!output.is_open()) {
-        return kStatusIoFailed;
+    ofstream output(outputPath, ios::trunc);
+    if (!output.is_open())
+    {
+        return printDllError("Dll_MergeSortAndFinalize", "cannot open output file: " + outputPath.string());
     }
 
-    output << std::fixed << std::setprecision(3);
-    for (const auto& point : points) {
+    output << fixed << setprecision(3);
+    for (const auto &point : points)
+    {
         output << point.x << " " << point.y << "\n";
-        if (!output.good()) {
-            return kStatusIoFailed;
+        if (!output.good())
+        {
+            return printDllError("Dll_MergeSortAndFinalize", "write failed for output file: " + outputPath.string());
         }
     }
 
-    for (const auto& path : filePaths) {
-        std::error_code ec;
-        if (std::filesystem::exists(path, ec)) {
-            std::filesystem::remove(path, ec);
-            if (ec) {
-                return kStatusIoFailed;
+    for (const auto &path : filePaths)
+    {
+        error_code ec;
+        if (exists(path, ec))
+        {
+            remove(path, ec);
+            if (ec)
+            {
+                return printDllError("Dll_MergeSortAndFinalize", "failed to delete intermediate file: " + path.string());
             }
-        } else if (ec) {
-            return kStatusIoFailed;
+        }
+        else if (ec)
+        {
+            return printDllError("Dll_MergeSortAndFinalize", "filesystem check failed for: " + path.string());
         }
     }
 
-    return kStatusSuccess;
+    return 0;
 }
 
-extern "C" MY_DLL_API int __cdecl Dll_DeleteWorkingFolderTree(void) {
-    const auto root = GetWorkingRootPath();
-    const std::string command = "cmd /C if exist " + QuoteForCmd(root) + " rmdir /S /Q " + QuoteForCmd(root);
-    return RunSystemCommand(command);
+extern "C" MY_DLL_API int __cdecl Dll_DeleteWorkingFolderTree(void)
+{
+    const auto root = getWorkingRootPath();
+    const string command = "cmd /C if exist \"" + root.string() + "\" rmdir /S /Q \"" + root.string() + "\"";
+    const int status = runSystemCommand(command);
+    if (status != 0)
+    {
+        return printDllError("Dll_DeleteWorkingFolderTree", "command: " + command);
+    }
+
+    return 0;
 }
