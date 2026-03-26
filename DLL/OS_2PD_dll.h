@@ -27,3 +27,48 @@ OS_DLL int __cdecl Dll_DeleteWorkingFolderTree(void);
 #ifdef __cplusplus
 }
 #endif
+
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cmath>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+using std::array;
+using std::cerr;
+using std::cout;
+using std::endl;
+using std::error_code;
+using std::fabs;
+using std::fixed;
+using std::floor;
+using std::ifstream;
+using std::ios;
+using std::max;
+using std::ofstream;
+using std::ostringstream;
+using std::round;
+using std::setprecision;
+using std::size_t;
+using std::sort;
+using std::sqrt;
+using std::string;
+using std::system;
+using std::to_string;
+using std::vector;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using std::chrono::system_clock;
+using std::filesystem::current_path;
+using std::filesystem::exists;
+using std::filesystem::path;
+using std::filesystem::remove;
+
+

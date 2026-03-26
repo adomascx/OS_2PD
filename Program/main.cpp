@@ -1,50 +1,33 @@
 #include "OS_2PD_dll.h"
 
-#include <array>
-#include <cstdlib>
-#include <iostream>
-#include <string>
+// konstantos
+constexpr int STUDENTO_ID = 2412939;
+constexpr const char *WIN_USER = "user01";
+constexpr const char *WEEK_DAYS = "M-F";
+constexpr const char *TIME_INTERVAL = "08:00-20:00";
+constexpr float F_VALUES[5] = {-2, -1, 0, 1, 2};
 
-using std::array;
-using std::cerr;
-using std::cout;
-using std::endl;
-using std::string;
-using std::to_string;
-
-namespace
-{
-    // konstantos
-    constexpr int studentoId = 2412939;
-    constexpr const char *userName = "user01";
-    constexpr const char *weekDays = "M-F";
-    constexpr const char *timeInterval = "08:00-20:00";
-    constexpr float FValues[5] = {-2, -1, 0, 1, 2};
-
-    // error'u helper
-    void printProgramError(string functionName, string details) { cerr << "\n[Programa] " << functionName << " failed: " << details << endl; }
-
-} // namespace
+// error'u helper
+void printProgramError(string functionName, string details) { cerr << "\n[Programa] " << functionName << " failed: " << details << endl; }
 
 int main()
 {
-    const float x0 = (studentoId % 19) * -1;
-    const float xn = studentoId % 25;
-    const float dx = studentoId / 1000000000000.0;
+    const float x0 = (STUDENTO_ID % 19) * -1;
+    const float xn = STUDENTO_ID % 25;
+    const float dx = STUDENTO_ID / 1000000000000.0;
 
     cout << "Starting program... " << endl;
     const float startTime = Dll_GetCurrentTimeSeconds();
 
     cout << "Setting user restrictions... ";
-    int success = Dll_SetUserTimeRestriction(userName, weekDays, timeInterval);
+    int success = Dll_SetUserTimeRestriction(WIN_USER, WEEK_DAYS, TIME_INTERVAL);
     if (success != 0)
     {
-        printProgramError("Dll_SetUserTimeRestriction", string("Couldn't run command with params") + userName + weekDays + timeInterval);
+        printProgramError("Dll_SetUserTimeRestriction", string("Couldn't run command with params") + WIN_USER + WEEK_DAYS + TIME_INTERVAL);
         return 1;
     }
-    cout << "done" << endl;
 
-    cout << "Creating folder tree... ";
+    cout << endl << "Creating folder tree... ";
     success = Dll_CreateWorkingFolderTree();
     if (success != 0)
     {
@@ -53,9 +36,9 @@ int main()
     }
     cout << "done" << endl;
 
-    for (float fValue : FValues)
+    for (float fValue : F_VALUES)
     {
-        cout << "Computing and distributing points for" << fValue << "... ";
+        cout << endl << "Computing and distributing points for F=" << fValue << "... ";
         success = Dll_ComputeAndDistributePoints(fValue, x0, xn, dx);
         if (success != 0)
         {
@@ -74,7 +57,7 @@ int main()
         cout << "done" << endl;
     }
 
-    cout << "Deleting folder tree... ";
+    cout << endl << "Deleting folder tree... ";
     success = Dll_DeleteWorkingFolderTree();
     if (success != 0)
     {
@@ -86,6 +69,6 @@ int main()
     const float endTime = Dll_GetCurrentTimeSeconds();
     const float totalTime = endTime - startTime;
 
-    cout << "Execution time: " << totalTime << " s" << endl;
+    cout << endl << "Execution time: " << totalTime << " s" << endl;
     return 0;
 }

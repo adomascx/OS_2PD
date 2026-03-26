@@ -1,116 +1,69 @@
 #include "OS_2PD_dll.h"
 
-#include <algorithm>
-#include <array>
-#include <chrono>
-#include <cmath>
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
+// konstantos
+constexpr int TREE_BRANCH_COUNT = 3;
+constexpr int LEAF_COUNT = TREE_BRANCH_COUNT * 3;
+constexpr const char *VARDAS = "Adomas";
+constexpr const char *PAVARDE = "Lukosevicius";
 
-using std::array;
-using std::cerr;
-using std::endl;
-using std::error_code;
-using std::fabs;
-using std::fixed;
-using std::floor;
-using std::ifstream;
-using std::ios;
-using std::max;
-using std::ofstream;
-using std::ostringstream;
-using std::round;
-using std::setprecision;
-using std::size_t;
-using std::sort;
-using std::sqrt;
-using std::string;
-using std::system;
-using std::to_string;
-using std::vector;
-using std::chrono::duration_cast;
-using std::chrono::milliseconds;
-using std::chrono::system_clock;
-using std::filesystem::current_path;
-using std::filesystem::exists;
-using std::filesystem::path;
-using std::filesystem::remove;
-
-namespace
+struct Point
 {
+    double x;
+    double y;
+};
 
-    // konstantos
-    constexpr int TREEBRANCHCOUNT = 3;
-    constexpr int LEAFCOUNT = TREEBRANCHCOUNT * TREEBRANCHCOUNT;
-    constexpr const char *NAME = "Adomas";
-    constexpr const char *LASTNAME = "Lukosevicius";
+// išveda DLL klaidas
+void printDllError(string functionName, string details) { cerr << "\n[DLL] " << functionName << " failed: " << details << endl; }
 
-    struct Point
+// Vykdo sistemos komandą ir grąžina jos vykdymo būseną
+int runSystemCommand(const string &command) { return system(command.c_str()) == 1; }
+
+// Nustato root aplanką, kuriame yra sugeneruotas tree
+path getRootPath() { return current_path() / PAVARDE; }
+
+// Sudaro pirmo lygio aplankų pavadinimus root kataloge
+array<string, TREE_BRANCH_COUNT> getL1FolderNames()
+{
+    array<string, TREE_BRANCH_COUNT> names{};
+
+    for (int i = 0; i < TREE_BRANCH_COUNT; i++)
     {
-        double x;
-        double y;
-    };
+        names[i] = string(VARDAS) + to_string(i + 1);
+    }
+    return names;
+}
 
-    // išveda DLL klaidas
-    void printDllError(string functionName, string details) { cerr << "\n[DLL] " << functionName << " failed: " << details << endl; }
+// Grąžina visų teksto failų (leaf nodes), naudojamų tarpiniam saugojimui, sąrašą
+vector<path> getL3TextFilePaths()
+{
+    const auto root = getRootPath();
+    const auto L1FolderNames = getL1FolderNames();
 
-    // Vykdo sistemos komandą ir grąžina jos vykdymo būseną
-    int runSystemCommand(const string &command) { return system(command.c_str()) == 1; }
+    vector<path> L3Dirs;
+    L3Dirs.reserve(LEAF_COUNT);
 
-    // Nustato root aplanką, kuriame yra sugeneruotas tree
-    path getRootPath() { return current_path() / LASTNAME; }
-
-    // Sudaro pirmo lygio aplankų pavadinimus root kataloge
-    array<string, TREEBRANCHCOUNT> getL1FolderNames()
+    for (int i = 0; i < TREE_BRANCH_COUNT; i++)
     {
-        array<string, TREEBRANCHCOUNT> names{};
+        const string parentName = string(VARDAS) + to_string(i + 1);
 
-        for (int i = 0; i < TREEBRANCHCOUNT; i++)
+        for (int j = 0; j < TREE_BRANCH_COUNT; j++)
         {
-            names[i] = string(NAME) + to_string(i + 1);
+            const string leafName = parentName + string(PAVARDE) + to_string(j + 1);
+            L3Dirs.push_back(root / parentName / leafName);
         }
-        return names;
     }
 
-    // Grąžina visų teksto failų (leaf nodes), naudojamų tarpiniam saugojimui, sąrašą
-    vector<path> getL3TextFilePaths()
+    vector<path> files;
+    files.reserve(L3Dirs.size());
+
+    for (const auto &leafDir : L3Dirs)
     {
-        const auto root = getRootPath();
-        const auto L1FolderNames = getL1FolderNames();
-
-        vector<path> L3Dirs;
-        L3Dirs.reserve(LEAFCOUNT);
-
-        for (int i = 0; i < TREEBRANCHCOUNT; i++)
-        {
-            const string parentName = string(NAME) + to_string(i + 1);
-
-            for (int j = 0; j < TREEBRANCHCOUNT; j++)
-            {
-                const string leafName = parentName + string(LASTNAME) + to_string(j + 1);
-                L3Dirs.push_back(root / parentName / leafName);
-            }
-        }
-
-        vector<path> files;
-        files.reserve(L3Dirs.size());
-
-        for (const auto &leafDir : L3Dirs)
-        {
-            const string leafFolderName = leafDir.filename().string();
-            files.push_back(leafDir / (leafFolderName + ".txt"));
-        }
-
-        return files;
+        const string leafFolderName = leafDir.filename().string();
+        files.push_back(leafDir / (leafFolderName + ".txt"));
     }
 
-} // namespace
+    return files;
+}
 
 // Grąžina dabartinį laiką sekundėmis su vieno skaitmens po kablelio tikslumu
 extern "C" OS_DLL float __cdecl Dll_GetCurrentTimeSeconds(void)
@@ -154,14 +107,14 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
     const int success = runSystemCommand(cmd);
     if (success != 0)
     {
-            printDllError("Dll_CreateWorkingFolderTree", "couldnt run command: " + cmd);
+        printDllError("Dll_CreateWorkingFolderTree", "couldnt run command: " + cmd);
         return 1;
     }
 
-    for (int i = 0; i < TREEBRANCHCOUNT; i++)
+    for (int i = 0; i < TREE_BRANCH_COUNT; i++)
     {
         // Sukuria kiekvieną pirmo lygio katalogą (VardasX)
-        const string parentName = string(NAME) + to_string(i + 1);
+        const string parentName = string(VARDAS) + to_string(i + 1);
         const auto firstLevel = root / parentName;
         const string firstCmd = "cmd /C if not exist \"" + firstLevel.string() + "\" mkdir \"" + firstLevel.string() + "\"";
         const int success = runSystemCommand(firstCmd);
@@ -171,10 +124,10 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
             return 1;
         }
 
-        for (int j = 0; j < TREEBRANCHCOUNT; j++)
+        for (int j = 0; j < TREE_BRANCH_COUNT; j++)
         {
             // Sukuria kiekvieną antro lygio katalogą po dabartine šaka (VardasXPavardeX)
-            const auto secondLevel = firstLevel / (parentName + string(LASTNAME) + to_string(j + 1));
+            const auto secondLevel = firstLevel / (parentName + string(PAVARDE) + to_string(j + 1));
             const string secondCmd = "cmd /C if not exist \"" + secondLevel.string() + "\" mkdir \"" + secondLevel.string() + "\"";
             const int success = runSystemCommand(secondCmd);
             if (success != 0)
