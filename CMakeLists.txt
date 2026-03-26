@@ -1,35 +1,54 @@
 cmake_minimum_required(VERSION 3.20)
 project(OS_2PD LANGUAGES CXX)
 
-add_library(MyStudentDll SHARED
-    DLL/my_dll_api.cpp
+add_library(OS_Dll SHARED
+    DLL/OS_2PD_dll.cpp
 )
 
-target_compile_features(MyStudentDll PRIVATE cxx_std_17)
-target_compile_definitions(MyStudentDll PRIVATE BUILDING_MY_DLL)
-target_include_directories(MyStudentDll
+target_compile_features(OS_Dll PRIVATE cxx_std_17)
+target_compile_definitions(OS_Dll PRIVATE BUILDING_MY_DLL)
+target_include_directories(OS_Dll
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/DLL
 )
 
-set_target_properties(MyStudentDll PROPERTIES
-    OUTPUT_NAME "MyStudentDll"
+set_target_properties(OS_Dll PROPERTIES
+    OUTPUT_NAME "OS_Dll"
 )
 
-add_executable(OS_DLL_Program
+add_executable(OS_Programa
     Program/main.cpp
 )
 
-target_compile_features(OS_DLL_Program PRIVATE cxx_std_17)
-target_include_directories(OS_DLL_Program PRIVATE
+target_compile_features(OS_Programa PRIVATE cxx_std_17)
+target_include_directories(OS_Programa PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/DLL
 )
-target_link_libraries(OS_DLL_Program PRIVATE MyStudentDll)
+target_link_libraries(OS_Programa PRIVATE OS_Dll)
 
-install(TARGETS MyStudentDll OS_DLL_Program
+if(MINGW)
+    get_filename_component(MINGW_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    set(MINGW_RUNTIME_DLLS
+        libstdc++-6.dll
+        libgcc_s_seh-1.dll
+        libwinpthread-1.dll
+    )
+
+    foreach(runtime_dll IN LISTS MINGW_RUNTIME_DLLS)
+        if(EXISTS "${MINGW_BIN_DIR}/${runtime_dll}")
+            add_custom_command(TARGET OS_Programa POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${MINGW_BIN_DIR}/${runtime_dll}"
+                    "$<TARGET_FILE_DIR:OS_Programa>/${runtime_dll}"
+            )
+        endif()
+    endforeach()
+endif()
+
+install(TARGETS OS_Dll OS_Programa
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
 
-install(FILES DLL/my_dll_api.h DESTINATION include)
+install(FILES DLL/OS_2PD_dll.h DESTINATION include)

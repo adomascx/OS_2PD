@@ -10,6 +10,7 @@ cmake_install.cmake
 compile_commands.json
 CTestTestfile.cmake
 Testing/
+*.exe
 
 # CMake generated project files
 Makefile
