@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 project(OS_2PD LANGUAGES CXX)
 
+if(WIN32)
+    enable_language(RC)
+endif()
+
 add_library(OS_Dll SHARED
     DLL/OS_2PD_dll.cpp
 )
@@ -16,8 +20,18 @@ set_target_properties(OS_Dll PROPERTIES
     OUTPUT_NAME "OS_Dll"
 )
 
+set(OS_PROGRAMA_SOURCES
+    program/main.cpp
+)
+
+if(WIN32)
+    list(APPEND OS_PROGRAMA_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/program/manifest/admin.rc
+    )
+endif()
+
 add_executable(OS_Programa
-    Program/main.cpp
+    ${OS_PROGRAMA_SOURCES}
 )
 
 target_compile_features(OS_Programa PRIVATE cxx_std_17)
