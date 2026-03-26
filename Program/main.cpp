@@ -1,4 +1,5 @@
 #include "OS_2PD_dll.h"
+#include <conio.h>
 
 // konstantos
 constexpr int STUDENTO_ID = 2412939;
@@ -19,7 +20,7 @@ int main()
     cout << "Starting program... " << endl;
     const float startTime = Dll_GetCurrentTimeSeconds();
 
-    cout << "Setting user restrictions... ";
+    cout << endl << "Setting user restrictions... ";
     int success = Dll_SetUserTimeRestriction(WIN_USER, WEEK_DAYS, TIME_INTERVAL);
     if (success != 0)
     {
@@ -27,7 +28,7 @@ int main()
         return 1;
     }
 
-    cout << endl << "Creating folder tree... ";
+    cout << "Creating folder tree... ";
     success = Dll_CreateWorkingFolderTree();
     if (success != 0)
     {
@@ -70,5 +71,9 @@ int main()
     const float totalTime = endTime - startTime;
 
     cout << endl << "Execution time: " << totalTime << " s" << endl;
+
+    cout << "Press any key to continue...";
+    _getch();
+    
     return 0;
 }

@@ -9,19 +9,19 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{3A2287C7-448E-4725-A9F6-75226542FF8B}
+AppId={{30661F46-DB8B-436E-96FB-CBC56135588E}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\OS_2PD
+DefaultDirName=C:\Program Files\OS_2PD
+DisableDirPage=yes
 DefaultGroupName={#MyAppName}
-AllowNoIcons=yes
+DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=C:\Users\Adomas\Desktop\Uni\2 Kursas\4 Semestras\OS\2PD\OS_2PD
 OutputBaseFilename=dll_setup
 SolidCompression=yes
