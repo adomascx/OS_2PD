@@ -12,16 +12,16 @@ struct Point
     double y;
 };
 
-// išveda DLL klaidas
+// isveda DLL klaidas
 void printDllError(string functionName, string details) { cerr << "\n[DLL] " << functionName << " failed: " << details << endl; }
 
-// Vykdo sistemos komandą ir grąžina jos vykdymo būseną
-int runSystemCommand(const string &command) { return system(command.c_str()) == 1; }
+// Vykdo sistemos komanda ir grazina jos vykdymo busena
+int runSystemCommand(const string &command) { return system(command.c_str()) != 0; }
 
-// Nustato root aplanką, kuriame yra sugeneruotas tree
+// Nustato root aplanka, kuriame yra sugeneruotas tree
 path getRootPath() { return current_path() / PAVARDE; }
 
-// Sudaro pirmo lygio aplankų pavadinimus root kataloge
+// Sudaro pirmo lygio aplanku pavadinimus root kataloge
 array<string, TREE_BRANCH_COUNT> getL1FolderNames()
 {
     array<string, TREE_BRANCH_COUNT> names{};
@@ -33,7 +33,7 @@ array<string, TREE_BRANCH_COUNT> getL1FolderNames()
     return names;
 }
 
-// Grąžina visų teksto failų (leaf nodes), naudojamų tarpiniam saugojimui, sąrašą
+// Grazina visu teksto failu (leaf nodes), naudojamu tarpiniam saugojimui, sarasa
 vector<path> getL3TextFilePaths()
 {
     const auto root = getRootPath();
@@ -65,14 +65,19 @@ vector<path> getL3TextFilePaths()
     return files;
 }
 
-// Grąžina dabartinį laiką sekundėmis su vieno skaitmens po kablelio tikslumu
+// Grazina laika sekundemis nuo pirmo DLL kvietimo
 extern "C" OS_DLL float __cdecl Dll_GetCurrentTimeSeconds(void)
 {
-    // Paima dabartinį sistemos laika
-    const auto now = system_clock::now();
-    const auto nowMs = duration_cast<milliseconds>(now.time_since_epoch()).count();
+    using Clock = steady_clock;
 
-    // Konvertuoja laiką į sekundes pagal grąžinimo formata
+    // Fiksuoja atskaitos taska pirma karta iskvietus funkcija procese
+    static const auto baseTime = Clock::now();
+
+    // Apskaiciuoja praejusi laika nuo atskaitos tasko
+    const auto now = Clock::now();
+    const auto nowMs = duration_cast<milliseconds>(now - baseTime).count();
+
+    // Konvertuoja laika i sekundes pagal grazinimo formata
     const float seconds = static_cast<float>(nowMs) / 1000.0f;
     return floor(seconds * 10.0f) / 10.0f;
 }
@@ -80,11 +85,11 @@ extern "C" OS_DLL float __cdecl Dll_GetCurrentTimeSeconds(void)
 // Pritaiko nurodyto Windows vartotojo prisijungimo laiko apribojimus
 extern "C" OS_DLL int __cdecl Dll_SetUserTimeRestriction(const char *userName, const char *weekDays, const char *timeInterval)
 {
-    // Sudaro Windows paskyros laiko apribojimo komandą nurodytam vartotojui
+    // Sudaro Windows paskyros laiko apribojimo komanda nurodytam vartotojui
     ostringstream command;
     command << "net user \"" << userName << "\" /times:" << weekDays << "," << timeInterval;
 
-    // Vykdo apribojimo komandą
+    // Vykdo apribojimo komanda
     const int success = runSystemCommand(command.str());
     if (success != 0)
     {
@@ -95,14 +100,14 @@ extern "C" OS_DLL int __cdecl Dll_SetUserTimeRestriction(const char *userName, c
     return 0;
 }
 
-// Sukuria katalogų medį ir paruošia teksto failus
+// Sukuria katalogu medi ir paruosia teksto failus
 extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
 {
     // Nustato root path ir pirmo lygio aplanku pavadinimus (VardasX)
     const auto root = getRootPath();
     const auto L1FolderNames = getL1FolderNames();
 
-    // Užtikrina, kad root katalogas egzistuoja
+    // Uztikrina, kad root katalogas egzistuoja
     const string cmd = "cmd /C if not exist \"" + root.string() + "\" mkdir \"" + root.string() + "\"";
     const int success = runSystemCommand(cmd);
     if (success != 0)
@@ -113,7 +118,7 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
 
     for (int i = 0; i < TREE_BRANCH_COUNT; i++)
     {
-        // Sukuria kiekvieną pirmo lygio katalogą (VardasX)
+        // Sukuria kiekviena pirmo lygio kataloga (VardasX)
         const string parentName = string(VARDAS) + to_string(i + 1);
         const auto firstLevel = root / parentName;
         const string firstCmd = "cmd /C if not exist \"" + firstLevel.string() + "\" mkdir \"" + firstLevel.string() + "\"";
@@ -126,7 +131,7 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
 
         for (int j = 0; j < TREE_BRANCH_COUNT; j++)
         {
-            // Sukuria kiekvieną antro lygio katalogą po dabartine šaka (VardasXPavardeX)
+            // Sukuria kiekviena antro lygio kataloga po dabartine saka (VardasXPavardeX)
             const auto secondLevel = firstLevel / (parentName + string(PAVARDE) + to_string(j + 1));
             const string secondCmd = "cmd /C if not exist \"" + secondLevel.string() + "\" mkdir \"" + secondLevel.string() + "\"";
             const int success = runSystemCommand(secondCmd);
@@ -138,7 +143,7 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
         }
     }
 
-    // Sukuria teksto failus, kurie bus naudojami Tšrinhauseno kilpos skaiciavimui
+    // Sukuria teksto failus, kurie bus naudojami Tschirnhauseno kilpos skaiciavimui
     const auto filePaths = getL3TextFilePaths();
     for (const auto &filePath : filePaths)
     {
@@ -153,11 +158,11 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
     return 0;
 }
 
-// Apskaičiuoja tinkamus (x, y) taškus ir paskirsto juos per teksto failus
+// Apskaiciuoja tinkamus (x, y) taskus ir paskirsto juos per teksto failus
 extern "C" OS_DLL int __cdecl Dll_ComputeAndDistributePoints(float F, float x0, float xn, float dx)
 {
 
-    // Nustato visus tarpinių rezultatų failus
+    // Nustato visus tarpiniu rezultatu failus
     const auto filePaths = getL3TextFilePaths();
 
     // Atidaro write streams visiems failams
@@ -174,7 +179,7 @@ extern "C" OS_DLL int __cdecl Dll_ComputeAndDistributePoints(float F, float x0, 
         streams.back() << fixed << setprecision(3);
     }
 
-    // Paruošia skaitines reikšmes, naudojamas taškų generavimui
+    // Paruosia skaitines reiksmes, naudojamas tasku generavimui
     size_t pointIndex = 0;
     const double xStart = x0;
     const double xEnd = xn;
@@ -182,7 +187,7 @@ extern "C" OS_DLL int __cdecl Dll_ComputeAndDistributePoints(float F, float x0, 
     const double fValue = F;
     const double epsilon = max(1e-12, fabs(xStep) * 1e-9);
 
-    // Sugeneruoja tinkamus taškus ir įrašo juos į failus
+    // Sugeneruoja tinkamus taskus ir iraso juos i failus
     for (double x = xStart; x <= xEnd + epsilon; x += xStep)
     {
         const double radicand = (x * x * x) + (3.0 * x * x) - fValue;
@@ -206,13 +211,13 @@ extern "C" OS_DLL int __cdecl Dll_ComputeAndDistributePoints(float F, float x0, 
     return 0;
 }
 
-// Surenka visus taškus, juos surūšiuoja, įrašo galutinį rezultatą ir pašalina tarpinius failus
+// Surenka visus taskus, juos surusiuoja, iraso galutini rezultata ir pasalina tarpinius failus
 extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
 {
-    // Nustato visus tarpinius failus surinkimui ir vėlesniam salinimui
+    // Nustato visus tarpinius failus surinkimui ir velesniam salinimui
     const auto filePaths = getL3TextFilePaths();
 
-    // Perskaito visus sugeneruotus taškus iš tarpinių failų
+    // Perskaito visus sugeneruotus taskus is tarpiniu failu
     vector<Point> points;
     for (const auto &path : filePaths)
     {
@@ -236,7 +241,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
         }
     }
 
-    // Surūšiuoja taškus: pirma pagal x, tada pagal y
+    // Surusiuoja taskus: pirma pagal x, tada pagal y
     sort(points.begin(), points.end(), [](const Point &left, const Point &right)
          {
         if (left.x == right.x) {
@@ -244,7 +249,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
         }
         return left.x < right.x; });
 
-    // Suformuoja failo pavadinima pagal F reikšmę
+    // Suformuoja failo pavadinima pagal F reiksme
     const double asDouble = F;
     const double nearestInteger = round(asDouble);
     string formattedF;
@@ -270,7 +275,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
         formattedF = text;
     }
 
-    // Atidaro galutinį rezultatų faila
+    // Atidaro galutini rezultatu faila
     const path outputPath = current_path() /
                             (string("F_") + formattedF + ".txt");
 
@@ -281,7 +286,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
         return 1;
     }
 
-    // Įrašo surūšiuotų taškų sąrašą į galutinį rezultatų failą
+    // Iraso surusiuotu tasku sarasa i galutini rezultatu faila
     output << fixed << setprecision(3);
     for (const auto &point : points)
     {
@@ -293,7 +298,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
         }
     }
 
-    // Pašalina tarpinius failus po to, kai sugeneruojamas galutinis rezultatas
+    // Pasalina tarpinius failus po to, kai sugeneruojamas galutinis rezultatas
     for (const auto &path : filePaths)
     {
         error_code ec;
@@ -316,10 +321,10 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
     return 0;
 }
 
-// Ištrina visą sugeneruotą katalogų medį
+// Istrina visa sugeneruota katalogu medi
 extern "C" OS_DLL int __cdecl Dll_DeleteWorkingFolderTree(void)
 {
-    // Sudaro ir įvykdo komandą, kuri pašalina sugeneruotą medį
+    // Sudaro ir ivykdo komanda, kuri pasalina sugeneruota medi
     const auto root = getRootPath();
     const string command = "cmd /C if exist \"" + root.string() + "\" rmdir /S /Q \"" + root.string() + "\"";
     const int success = runSystemCommand(command);

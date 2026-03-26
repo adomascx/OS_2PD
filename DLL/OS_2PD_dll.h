@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 
 #if defined(_WIN32) || defined(__CYGWIN__)
     #ifdef BUILDING_MY_DLL
@@ -70,5 +69,5 @@ using std::filesystem::current_path;
 using std::filesystem::exists;
 using std::filesystem::path;
 using std::filesystem::remove;
-
+using std::chrono::steady_clock;
 

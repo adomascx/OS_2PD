@@ -18,7 +18,7 @@ int main()
     const float dx = STUDENTO_ID / 1000000000000.0;
 
     cout << "Starting program... " << endl;
-    const float startTime = Dll_GetCurrentTimeSeconds();
+    const double startTime = Dll_GetCurrentTimeSeconds();
 
     cout << endl << "Setting user restrictions... ";
     int success = Dll_SetUserTimeRestriction(WIN_USER, WEEK_DAYS, TIME_INTERVAL);
@@ -67,8 +67,8 @@ int main()
     }
     cout << "done" << endl;
 
-    const float endTime = Dll_GetCurrentTimeSeconds();
-    const float totalTime = endTime - startTime;
+    const double endTime = Dll_GetCurrentTimeSeconds();
+    const double totalTime = endTime - startTime;
 
     cout << endl << "Execution time: " << totalTime << " s" << endl;
 
