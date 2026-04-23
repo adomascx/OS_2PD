@@ -16,7 +16,7 @@ struct Point
 void printDllError(string functionName, string details) { cerr << "\n[DLL] " << functionName << " failed: " << details << endl; }
 
 // Vykdo sistemos komanda ir grazina jos vykdymo busena
-int runSystemCommand(const string &command) { return system(command.c_str()) != 0; }
+bool runSystemCommand(const string &command) { return system(command.c_str()) == 0; }
 
 // Nustato root aplanka, kuriame yra sugeneruotas tree
 path getRootPath() { return current_path() / PAVARDE; }
@@ -66,7 +66,7 @@ vector<path> getL3TextFilePaths()
 }
 
 // Grazina laika sekundemis nuo pirmo DLL kvietimo
-extern "C" OS_DLL float __cdecl Dll_GetCurrentTimeSeconds(void)
+extern "C" OS_DLL float __cdecl Dll_GetCurrentTimeSeconds()
 {
     using Clock = steady_clock;
 
@@ -77,31 +77,31 @@ extern "C" OS_DLL float __cdecl Dll_GetCurrentTimeSeconds(void)
     const auto now = Clock::now();
     const auto nowMs = duration_cast<milliseconds>(now - baseTime).count();
 
-    // Konvertuoja laika i sekundes pagal grazinimo formata
+    // Konvertuoja laika i sekundes pagal grazinimo formata 'xx.x'
     const float seconds = static_cast<float>(nowMs) / 1000.0f;
     return floor(seconds * 10.0f) / 10.0f;
 }
 
 // Pritaiko nurodyto Windows vartotojo prisijungimo laiko apribojimus
-extern "C" OS_DLL int __cdecl Dll_SetUserTimeRestriction(const char *userName, const char *weekDays, const char *timeInterval)
+extern "C" OS_DLL bool __cdecl Dll_SetUserTimeRestriction(const char *userName, const char *weekDays, const char *timeInterval)
 {
     // Sudaro Windows paskyros laiko apribojimo komanda nurodytam vartotojui
     ostringstream command;
     command << "net user \"" << userName << "\" /times:" << weekDays << "," << timeInterval;
 
     // Vykdo apribojimo komanda
-    const int success = runSystemCommand(command.str());
-    if (success != 0)
+    const bool success = runSystemCommand(command.str());
+    if (!success)
     {
         printDllError("Dll_SetUserTimeRestriction", "couldnt run command: " + command.str());
-        return 1;
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
 // Sukuria katalogu medi ir paruosia teksto failus
-extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
+extern "C" OS_DLL bool __cdecl Dll_CreateWorkingFolderTree()
 {
     // Nustato root path ir pirmo lygio aplanku pavadinimus (VardasX)
     const auto root = getRootPath();
@@ -109,11 +109,11 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
 
     // Uztikrina, kad root katalogas egzistuoja
     const string cmd = "cmd /C if not exist \"" + root.string() + "\" mkdir \"" + root.string() + "\"";
-    const int success = runSystemCommand(cmd);
-    if (success != 0)
+    const bool success = runSystemCommand(cmd);
+    if (!success)
     {
         printDllError("Dll_CreateWorkingFolderTree", "couldnt run command: " + cmd);
-        return 1;
+        return false;
     }
 
     for (int i = 0; i < TREE_BRANCH_COUNT; i++)
@@ -122,11 +122,11 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
         const string parentName = string(VARDAS) + to_string(i + 1);
         const auto firstLevel = root / parentName;
         const string firstCmd = "cmd /C if not exist \"" + firstLevel.string() + "\" mkdir \"" + firstLevel.string() + "\"";
-        const int success = runSystemCommand(firstCmd);
-        if (success != 0)
+        const bool success = runSystemCommand(firstCmd);
+        if (!success)
         {
             printDllError("Dll_CreateWorkingFolderTree", "couldnt run command: " + firstCmd);
-            return 1;
+            return false;
         }
 
         for (int j = 0; j < TREE_BRANCH_COUNT; j++)
@@ -134,11 +134,11 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
             // Sukuria kiekviena antro lygio kataloga po dabartine saka (VardasXPavardeX)
             const auto secondLevel = firstLevel / (parentName + string(PAVARDE) + to_string(j + 1));
             const string secondCmd = "cmd /C if not exist \"" + secondLevel.string() + "\" mkdir \"" + secondLevel.string() + "\"";
-            const int success = runSystemCommand(secondCmd);
-            if (success != 0)
+            const bool success = runSystemCommand(secondCmd);
+            if (!success)
             {
                 printDllError("Dll_CreateWorkingFolderTree", "couldnt run command: " + secondCmd);
-                return 1;
+                return false;
             }
         }
     }
@@ -151,15 +151,15 @@ extern "C" OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void)
         if (!file.is_open())
         {
             printDllError("Dll_CreateWorkingFolderTree", "cannot open file: " + filePath.string());
-            return 1;
+            return false;
         }
     }
 
-    return 0;
+    return true;
 }
 
 // Apskaiciuoja tinkamus (x, y) taskus ir paskirsto juos per teksto failus
-extern "C" OS_DLL int __cdecl Dll_ComputeAndDistributePoints(float F, float x0, float xn, float dx)
+extern "C" OS_DLL bool __cdecl Dll_ComputeAndDistributePoints(float F, float x0, float xn, float dx)
 {
 
     // Nustato visus tarpiniu rezultatu failus
@@ -174,7 +174,7 @@ extern "C" OS_DLL int __cdecl Dll_ComputeAndDistributePoints(float F, float x0, 
         if (!streams.back().is_open())
         {
             printDllError("Dll_ComputeAndDistributePoints", "cannot open stream: " + path.string());
-            return 1;
+            return false;
         }
         streams.back() << fixed << setprecision(3);
     }
@@ -202,17 +202,17 @@ extern "C" OS_DLL int __cdecl Dll_ComputeAndDistributePoints(float F, float x0, 
         if (!target.good())
         {
             printDllError("Dll_ComputeAndDistributePoints", "write failed while distributing points");
-            return 1;
+            return false;
         }
 
         ++pointIndex;
     }
 
-    return 0;
+    return true;
 }
 
 // Surenka visus taskus, juos surusiuoja, iraso galutini rezultata ir pasalina tarpinius failus
-extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
+extern "C" OS_DLL bool __cdecl Dll_MergeSortAndFinalize(float F)
 {
     // Nustato visus tarpinius failus surinkimui ir velesniam salinimui
     const auto filePaths = getL3TextFilePaths();
@@ -225,7 +225,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
         if (!input.is_open())
         {
             printDllError("Dll_MergeSortAndFinalize", "cannot open input file: " + path.string());
-            return 1;
+            return false;
         }
 
         Point point{};
@@ -237,7 +237,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
         if (!input.eof() && input.fail())
         {
             printDllError("Dll_MergeSortAndFinalize", "parse failed for file: " + path.string());
-            return 1;
+            return false;
         }
     }
 
@@ -283,7 +283,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
     if (!output.is_open())
     {
         printDllError("Dll_MergeSortAndFinalize", "cannot open output file: " + outputPath.string());
-        return 1;
+        return false;
     }
 
     // Iraso surusiuotu tasku sarasa i galutini rezultatu faila
@@ -294,7 +294,7 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
         if (!output.good())
         {
             printDllError("Dll_MergeSortAndFinalize", "write failed for output file: " + outputPath.string());
-            return 1;
+            return false;
         }
     }
 
@@ -308,31 +308,31 @@ extern "C" OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F)
             if (ec)
             {
                 printDllError("Dll_MergeSortAndFinalize", "failed to delete intermediate file: " + path.string());
-                return 1;
+                return false;
             }
         }
         else if (ec)
         {
             printDllError("Dll_MergeSortAndFinalize", "filesystem check failed for: " + path.string());
-            return 1;
+            return false;
         }
     }
 
-    return 0;
+    return true;
 }
 
 // Istrina visa sugeneruota katalogu medi
-extern "C" OS_DLL int __cdecl Dll_DeleteWorkingFolderTree(void)
+extern "C" OS_DLL bool __cdecl Dll_DeleteWorkingFolderTree()
 {
     // Sudaro ir ivykdo komanda, kuri pasalina sugeneruota medi
     const auto root = getRootPath();
     const string command = "cmd /C if exist \"" + root.string() + "\" rmdir /S /Q \"" + root.string() + "\"";
-    const int success = runSystemCommand(command);
-    if (success != 0)
+    const bool success = runSystemCommand(command);
+    if (!success)
     {
         printDllError("Dll_DeleteWorkingFolderTree", "couldnt run command: " + command);
-        return 1;
+        return false;
     }
 
-    return 0;
+    return true;
 }

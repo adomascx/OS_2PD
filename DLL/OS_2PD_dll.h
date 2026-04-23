@@ -16,12 +16,12 @@ extern "C"
 {
 #endif
 
-OS_DLL float __cdecl Dll_GetCurrentTimeSeconds(void);
-OS_DLL int __cdecl Dll_SetUserTimeRestriction(const char *userName, const char *weekDays, const char *timeInterval);
-OS_DLL int __cdecl Dll_CreateWorkingFolderTree(void);
-OS_DLL int __cdecl Dll_ComputeAndDistributePoints(float F, float x0, float xn, float dx);
-OS_DLL int __cdecl Dll_MergeSortAndFinalize(float F);
-OS_DLL int __cdecl Dll_DeleteWorkingFolderTree(void);
+OS_DLL float __cdecl Dll_GetCurrentTimeSeconds();
+OS_DLL bool __cdecl Dll_SetUserTimeRestriction(const char* userName, const char* weekDays, const char* timeInterval);
+OS_DLL bool __cdecl Dll_CreateWorkingFolderTree();
+OS_DLL bool __cdecl Dll_ComputeAndDistributePoints(float F, float x0, float xn, float dx);
+OS_DLL bool __cdecl Dll_MergeSortAndFinalize(float F);
+OS_DLL bool __cdecl Dll_DeleteWorkingFolderTree();
 
 #ifdef __cplusplus
 }
@@ -37,8 +37,8 @@ OS_DLL int __cdecl Dll_DeleteWorkingFolderTree(void);
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <string>
 #include <vector>
+#include <string>
 
 using std::array;
 using std::cerr;
@@ -64,10 +64,9 @@ using std::to_string;
 using std::vector;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
+using std::chrono::steady_clock;
 using std::chrono::system_clock;
 using std::filesystem::current_path;
 using std::filesystem::exists;
 using std::filesystem::path;
 using std::filesystem::remove;
-using std::chrono::steady_clock;
-
