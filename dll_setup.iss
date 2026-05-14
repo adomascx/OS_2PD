@@ -22,7 +22,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
-OutputDir=C:\Users\Adomas\Desktop\Uni\2 Kursas\4 Semestras\OS\2PD\OS_2PD
+OutputDir=.\output
 OutputBaseFilename=dll_setup
 SolidCompression=yes
 WizardStyle=modern dynamic
@@ -31,9 +31,9 @@ WizardStyle=modern dynamic
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "C:\Users\Adomas\Desktop\Uni\2 Kursas\4 Semestras\OS\2PD\OS_2PD\build\libgcc_s_seh-1.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\Adomas\Desktop\Uni\2 Kursas\4 Semestras\OS\2PD\OS_2PD\build\libOS_Dll.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\Adomas\Desktop\Uni\2 Kursas\4 Semestras\OS\2PD\OS_2PD\build\libstdc++-6.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\Adomas\Desktop\Uni\2 Kursas\4 Semestras\OS\2PD\OS_2PD\build\libwinpthread-1.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: ".\build\libgcc_s_seh-1.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: ".\build\libOS_Dll.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: ".\build\libstdc++-6.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: ".\build\libwinpthread-1.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
